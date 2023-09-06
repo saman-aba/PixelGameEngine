@@ -3,6 +3,8 @@
 
 #include <string>
 #include <windows.h>
+#include <atomic>
+#include <mutex>
 
 struct sKeyState
 {
@@ -18,9 +20,13 @@ public:
 
 	void EnableSound();
 	int ConstructConsole(int width, int height, int fontw, int fonth);
+	virtual void Draw(int x, int y, short c = 0x2588, short col = 0x000F);
+	void Fill(int x1, int y1, int x2, int y2, short c = 0x2588, short col = 0x000F);
 	
 protected:
 	int Error(const wchar_t* msg);
+
+	static BOOL CloseHandler(DWORD evt);
 
 protected:
 	int _nScreenWidth;
@@ -49,6 +55,10 @@ protected:
 	bool _bEnableSound = false;
 
 	SMALL_RECT _rectWindow;
+
+	static std::atomic<bool> _bAtomActive;
+	static std::condition_variable _cvGameFinished;
+	static std::mutex _muxGame;
 };
 
 #endif

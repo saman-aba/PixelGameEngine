@@ -1,5 +1,6 @@
 #include "Abstract-Engine.h"
 
+
 ConsoleEngine::ConsoleEngine()
 {
 	_nScreenHeight = 80;
@@ -42,8 +43,62 @@ int ConsoleEngine::ConstructConsole(int width, int height, int fontw, int fonth)
 		Error(L"SetConsoleScreenBufferSize");
 
 	if (!SetConsoleActiveScreenBuffer(_hConsole))
-	return 0;
+		return Error(L"SetConsoleActiveScreenBuffer");
+
+	CONSOLE_FONT_INFOEX cfi;
+	cfi.cbSize = sizeof(cfi);
+	cfi.nFont = 0;
+	cfi.dwFontSize.X = fontw;
+	cfi.dwFontSize.Y = fonth;
+	cfi.FontFamily = FF_DONTCARE;
+	cfi.FontWeight = FW_NORMAL;
+
+	wcscpy_s(cfi.FaceName, L"Consolas");
+	if (!SetCurrentConsoleFontEx(_hConsole, false, &cfi))
+		return Error(L"SetCurrentConsoleFontEx");
+
+	CONSOLE_SCREEN_BUFFER_INFO csbi;
+
+	if (!GetConsoleScreenBufferInfo(_hConsole, &csbi))
+		return Error(L"SetConsoleScreenBufferInfo");
+
+	if (_nScreenHeight > csbi.dwMaximumWindowSize.Y)
+		return Error(L"Screen Height / Font Height Too Big");
+
+	if (_nScreenWidth > csbi.dwMaximumWindowSize.X)
+		return Error(L"Screen Width / Font Width Too Big");
+
+	short shortScreenWidth = (short)_nScreenWidth - 1;
+	short shortScreenHeight = (short)_nScreenHeight - 1;
+	_rectWindow = { 0, 0, shortScreenWidth , shortScreenHeight };
+	
+	if (!SetConsoleWindowInfo(_hConsole, TRUE, &_rectWindow))
+		return Error(L"SetConsoleWindowInfo");
+
+	if (!SetConsoleMode(_hConsoleIn, ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT))
+		return Error(L"SetConsoleMode");
+
+	_bufScreen = new CHAR_INFO[_nScreenHeight * _nScreenWidth];
+	memset(_bufScreen, 0, sizeof(CHAR_INFO) * _nScreenWidth * _nScreenHeight);
+
+	SetConsoleCtrlHandler((PHANDLER_ROUTINE)CloseHandler, TRUE);
+	return 1;
+
 }
+
+void ConsoleEngine::Draw(int x, int y, short c , short col)
+{
+	if (x >= 0 && x < _nScreenWidth && y >= 0 && y < _nScreenHeight)
+	{
+		_bufScreen[y * _nScreenWidth + x].Char.UnicodeChar = c;
+		_bufScreen[y * _nScreenWidth + x].Attributes = col;
+	}
+}
+
+void ConsoleEngine::Fill(int x1, int y1, int x2, int y2, short c, short col)
+{
+}
+
 
 int ConsoleEngine::Error(const wchar_t* msg)
 {
@@ -52,5 +107,17 @@ int ConsoleEngine::Error(const wchar_t* msg)
 	SetConsoleActiveScreenBuffer(_hOriginalConsole);
 	wprintf(L"ERROR: %s\n\t%s\n", msg, buf);
 	return 0;
+}
+
+BOOL ConsoleEngine::CloseHandler(DWORD evt)
+{
+	if (evt == CTRL_CLOSE_EVENT)
+	{
+		_bAtomActive = false;
+
+		std::unique_lock<std::mutex> ul(_muxGame);
+		_cvGameFinished.wait(ul);
+	}
+	return true;
 }
 
