@@ -97,6 +97,38 @@ void ConsoleEngine::Draw(int x, int y, short c , short col)
 
 void ConsoleEngine::Fill(int x1, int y1, int x2, int y2, short c, short col)
 {
+	Clip(x1, y1);
+	Clip(x2, y2);
+	for (int x = x1; x < x2; ++x)
+		for (int y = y1; y < y2; ++y)
+			Draw(x, y, c, col);
+}
+
+void ConsoleEngine::Clip(int& x, int& y)
+{
+	if (x < 0) x = 0;
+	if (x > _nScreenWidth) x = _nScreenWidth;
+	if (y < 0) y = 0;
+	if (y > _nScreenHeight) y = _nScreenHeight;
+}
+
+void ConsoleEngine::Start()
+{
+	_bAtomActive = true;
+
+	std::thread t = std::thread(&ConsoleEngine::GameThread, this);
+
+	t.join();
+}
+
+int ConsoleEngine::ScreenWidth()
+{
+	return _nScreenWidth;
+}
+
+int ConsoleEngine::ScreenHeight()
+{
+	return _nScreenHeight;
 }
 
 
@@ -119,5 +151,10 @@ BOOL ConsoleEngine::CloseHandler(DWORD evt)
 		_cvGameFinished.wait(ul);
 	}
 	return true;
+}
+
+void ConsoleEngine::GameThread()
+{
+
 }
 

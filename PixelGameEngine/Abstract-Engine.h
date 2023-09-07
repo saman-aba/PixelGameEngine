@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <atomic>
 #include <mutex>
+#include <thread>
 
 struct sKeyState
 {
@@ -22,6 +23,13 @@ public:
 	int ConstructConsole(int width, int height, int fontw, int fonth);
 	virtual void Draw(int x, int y, short c = 0x2588, short col = 0x000F);
 	void Fill(int x1, int y1, int x2, int y2, short c = 0x2588, short col = 0x000F);
+
+	void Clip(int& x, int& y);
+
+	void Start();
+
+	int ScreenWidth();
+	int ScreenHeight();
 	
 protected:
 	int Error(const wchar_t* msg);
@@ -59,6 +67,9 @@ protected:
 	static std::atomic<bool> _bAtomActive;
 	static std::condition_variable _cvGameFinished;
 	static std::mutex _muxGame;
+
+private:
+	void GameThread();
 };
 
 #endif
