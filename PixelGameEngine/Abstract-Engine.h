@@ -6,6 +6,7 @@
 #include <atomic>
 #include <mutex>
 #include <thread>
+#include <chrono>
 
 struct sKeyState
 {
@@ -19,6 +20,10 @@ class ConsoleEngine
 public:
 	ConsoleEngine();
 
+	virtual bool OnUserCreate() = 0;
+	virtual bool OnUserUpdate() = 0;
+	virtual bool OnUserDestroy() = 0;
+
 	void EnableSound();
 	int ConstructConsole(int width, int height, int fontw, int fonth);
 	virtual void Draw(int x, int y, short c = 0x2588, short col = 0x000F);
@@ -31,6 +36,12 @@ public:
 	int ScreenWidth();
 	int ScreenHeight();
 	
+	sKeyState GetKey(int nKeyID);
+	int GetMouseX();
+	int GetMouseY();
+	sKeyState GetMouse(int nMouseButtonID);
+	bool IsFocused();
+		
 protected:
 	int Error(const wchar_t* msg);
 

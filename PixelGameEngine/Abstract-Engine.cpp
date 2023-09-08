@@ -131,6 +131,31 @@ int ConsoleEngine::ScreenHeight()
 	return _nScreenHeight;
 }
 
+sKeyState ConsoleEngine::GetKey(int nKeyID)
+{
+	return _keys[nKeyID];
+}
+
+int ConsoleEngine::GetMouseX()
+{
+	return _mousePosX;
+}
+
+int ConsoleEngine::GetMouseY()
+{
+	return _mousePosY;
+}
+
+sKeyState ConsoleEngine::GetMouse(int nMouseButtonID)
+{
+	return _mouse[nMouseButtonID];
+}
+
+bool ConsoleEngine::IsFocused()
+{
+	return _bConsoleInFocus;
+}
+
 
 int ConsoleEngine::Error(const wchar_t* msg)
 {
@@ -155,6 +180,51 @@ BOOL ConsoleEngine::CloseHandler(DWORD evt)
 
 void ConsoleEngine::GameThread()
 {
+	if (!OnUserCreate())
+		_bAtomActive = false;
+
+	if (_bEnableSound)
+	{
+		if (!CreateAudio())
+		{
+			_bAtomActive = false;
+			_bEnableSound = false;
+		}
+	}
+
+	auto tp1 = std::chrono::system_clock::now();
+	auto tp2 = std::chrono::system_clock::now();
+
+	while (_bAtomActive)
+	{
+		tp2 = std::chrono::system_clock::now();
+		std::chrono::duration<float> elapsedTime = tp2 - tp1;
+
+		tp1 = tp2;
+
+		float fElapsedTime = elapsedTime.count();
+
+		for (int i = 0; i < 256; ++i)
+		{
+			_keyNewState[i] = GetAsyncKeyState(i);
+
+			_keys[i].bPressed = false;
+			_keys[i].bReleased = false;
+
+			if (_keyNewState[i] != _keyOldState[i])
+			{
+				_keys[i].bPressed = !_keys[i].bHeld;
+				_keys[i].bHeld = true;
+			}
+			else
+			{
+				_keys[i].bReleased = true;
+				_keys[i].bHeld = false;
+			}
+			_keyOldState[i] = _keyNewState[i];
+		}
+	}
+		
 
 }
 
