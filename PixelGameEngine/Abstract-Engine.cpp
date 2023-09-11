@@ -213,15 +213,33 @@ void ConsoleEngine::GameThread()
 
 			if (_keyNewState[i] != _keyOldState[i])
 			{
-				_keys[i].bPressed = !_keys[i].bHeld;
-				_keys[i].bHeld = true;
-			}
-			else
-			{
-				_keys[i].bReleased = true;
-				_keys[i].bHeld = false;
+				if (_keyNewState[i] & 0x8000)
+				{
+					_keys[i].bPressed = !_keys[i].bHeld;
+					_keys[i].bHeld = true;
+				}
+				else
+				{
+					_keys[i].bReleased = true;
+					_keys[i].bHeld = false;
+				}
 			}
 			_keyOldState[i] = _keyNewState[i];
+		}
+
+		INPUT_RECORD inBuf[32];
+		DWORD events = 0;
+		GetNumberOfConsoleInputEvents(_hConsoleIn, &events);
+
+		if (events > 0)
+			ReadConsoleInput(_hConsoleIn, inBuf, events, &events);
+
+		for (DWORD i = 0; i < events; ++i)
+		{
+			switch (inBuf[i].EventType)
+			{
+			case FOCUS_EVENT:
+			}
 		}
 	}
 		
