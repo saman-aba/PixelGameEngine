@@ -40,4 +40,61 @@ AudioSample::AudioSample(std::wstring sWavFile)
 		std::fread(&dump, sizeof(char), 4, f);
 		std::fread(&nChunkSize, sizeof(long), 1, f);
 	}
+
+	nSamples = nChunkSize / (wavHeader.nChannels * (wavHeader.wBitsPerSample >> 3));
+	nChannels = wavHeader.nChannels;
+
+	fSample = new float[nSamples * nChannels];
+	float* pSample = fSample;
+
+	for (long i = 0; i < nSamples; ++i)
+	{
+		for (int c = 0; c < nChannels; ++c)
+		{
+			short s = 0;
+			std::fread(&s, sizeof(short), 1, f);
+			*pSample = (float)s / (float)(MAXSHORT);
+			++pSample;
+		}
+	}
+
+	std::fclose(f);
+	bSampleValid = true;
+
+	WAVEFORMATEX wavHeader;
+	float* fSample = nullptr;
+	long nSamples = 0;
+	int nChannels = 0;
+	bool bSampleValid = false; 
+
+}
+
+unsigned int AudioEngine::LoadAudioSample(std::wstring sWavFile)
+{
+	if (1/*!_bEnableSound*/)
+		return -1;
+	AudioSample a(sWavFile);
+	if (a.bSampleValid)
+	{
+		vecAudioSamples.push_back(a);
+		return vecAudioSamples.size();
+	}
+	else
+		return -1 ;
+}
+
+void AudioEngine::PlaySample(int id, bool bLoop)
+{
+	sCurrentlyPlayingSample a;
+	a.nAudioSampleID = id;
+	a.nSamplePosition = 0;
+	a.bFinished = false;
+	a.bLoop = bLoop;
+	listActiveSamples.push_back(a);
+}
+
+
+void AudioEngine::StopSample(int id)
+{
+
 }

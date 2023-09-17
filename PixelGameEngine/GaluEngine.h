@@ -9,6 +9,8 @@ public:
     virtual bool OnUserCreate();
     
     virtual bool OnUserUpdate(float fElapsedTime);
+
+    virtual bool OnUserDestroy();
     
 };
 

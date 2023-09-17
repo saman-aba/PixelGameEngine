@@ -21,7 +21,7 @@ public:
 	ConsoleEngine();
 
 	virtual bool OnUserCreate() = 0;
-	virtual bool OnUserUpdate() = 0;
+	virtual bool OnUserUpdate(float fElapsedTime) = 0;
 	virtual bool OnUserDestroy() = 0;
 
 	void EnableSound();
@@ -56,7 +56,7 @@ protected:
 	HANDLE _hConsoleIn;
 
 	CHAR_INFO* _bufScreen;
-	std::wstring _AppName;
+	std::wstring _sAppName;
 
 	short _keyOldState[256] = { 0 };
 	short _keyNewState[256] = { 0 };

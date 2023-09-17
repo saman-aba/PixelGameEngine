@@ -19,7 +19,7 @@ ConsoleEngine::ConsoleEngine()
 
 	_bEnableSound = false;
 
-	_AppName = L"Default";
+	_sAppName = L"Default";
 }
 
 void ConsoleEngine::EnableSound()
@@ -183,64 +183,144 @@ void ConsoleEngine::GameThread()
 	if (!OnUserCreate())
 		_bAtomActive = false;
 
-	if (_bEnableSound)
+	/*if (_bEnableSound)
 	{
 		if (!CreateAudio())
 		{
 			_bAtomActive = false;
 			_bEnableSound = false;
 		}
-	}
+	}*/
 
 	auto tp1 = std::chrono::system_clock::now();
 	auto tp2 = std::chrono::system_clock::now();
 
 	while (_bAtomActive)
 	{
-		tp2 = std::chrono::system_clock::now();
-		std::chrono::duration<float> elapsedTime = tp2 - tp1;
-
-		tp1 = tp2;
-
-		float fElapsedTime = elapsedTime.count();
-
-		for (int i = 0; i < 256; ++i)
+		while (_bAtomActive)
 		{
-			_keyNewState[i] = GetAsyncKeyState(i);
+			tp2 = std::chrono::system_clock::now();
+			std::chrono::duration<float> elapsedTime = tp2 - tp1;
 
-			_keys[i].bPressed = false;
-			_keys[i].bReleased = false;
+			tp1 = tp2;
 
-			if (_keyNewState[i] != _keyOldState[i])
+			float fElapsedTime = elapsedTime.count();
+
+			for (int i = 0; i < 256; ++i)
 			{
-				if (_keyNewState[i] & 0x8000)
+				_keyNewState[i] = GetAsyncKeyState(i);
+
+				_keys[i].bPressed = false;
+				_keys[i].bReleased = false;
+
+				if (_keyNewState[i] != _keyOldState[i])
 				{
-					_keys[i].bPressed = !_keys[i].bHeld;
-					_keys[i].bHeld = true;
+					if (_keyNewState[i] & 0x8000)
+					{
+						_keys[i].bPressed = !_keys[i].bHeld;
+						_keys[i].bHeld = true;
+					}
+					else
+					{
+						_keys[i].bReleased = true;
+						_keys[i].bHeld = false;
+					}
 				}
-				else
+				_keyOldState[i] = _keyNewState[i];
+			}
+
+			INPUT_RECORD inBuf[32];
+			DWORD events = 0;
+			GetNumberOfConsoleInputEvents(_hConsoleIn, &events);
+
+			if (events > 0)
+				ReadConsoleInput(_hConsoleIn, inBuf, events, &events);
+
+			for (DWORD i = 0; i < events; ++i)
+			{
+				switch (inBuf[i].EventType)
 				{
-					_keys[i].bReleased = true;
-					_keys[i].bHeld = false;
+				case FOCUS_EVENT:
+				{
+					_bConsoleInFocus = inBuf[i].Event.FocusEvent.bSetFocus;
+				}
+				break;
+
+				case MOUSE_EVENT:
+				{
+					switch (inBuf[i].Event.MouseEvent.dwEventFlags)
+					{
+					case MOUSE_MOVED:
+					{
+						_mousePosX = inBuf[i].Event.MouseEvent.dwMousePosition.X;
+						_mousePosY = inBuf[i].Event.MouseEvent.dwMousePosition.Y;
+					}
+					break;
+					case 0:
+					{
+						for (int m = 0; m < 5; ++m)
+							_mouseNewState[m] = (inBuf[i].Event.MouseEvent.dwButtonState & (1 << m)) > 0;
+					}
+					break;
+
+					default:
+						break;
+					}
+				}
+				break;
+
+				default:
+					break;
 				}
 			}
-			_keyOldState[i] = _keyNewState[i];
-		}
 
-		INPUT_RECORD inBuf[32];
-		DWORD events = 0;
-		GetNumberOfConsoleInputEvents(_hConsoleIn, &events);
-
-		if (events > 0)
-			ReadConsoleInput(_hConsoleIn, inBuf, events, &events);
-
-		for (DWORD i = 0; i < events; ++i)
-		{
-			switch (inBuf[i].EventType)
+			for (int m = 0; m < 5; m++)
 			{
-			case FOCUS_EVENT:
+				_mouse[m].bPressed = false;
+				_mouse[m].bReleased = false;
+
+				if (_mouseNewState[m] != _mouseOldState[m])
+				{
+					if (_mouseNewState[m])
+					{
+						_mouse[m].bPressed = true;
+						_mouse[m].bHeld = true;
+					}
+					else
+					{
+						_mouse[m].bReleased = true;
+						_mouse[m].bHeld = false;
+					}
+				}
+
+				_mouseOldState[m] = _mouseNewState[m];
 			}
+
+			if (!OnUserUpdate(fElapsedTime))
+				_bAtomActive = false;
+
+			wchar_t s[256];
+			swprintf_s(s, 256, L"SAMAN - Console Game Engine - %s - FPS: %3.2f", _sAppName.c_str(), 1.0f / fElapsedTime);
+			SetConsoleTitle(s);
+			WriteConsoleOutput(_hConsole, _bufScreen, { (short)_nScreenWidth, (short)_nScreenHeight }, { 0,0 }, &_rectWindow);
 		}
+
+		if (_bEnableSound)
+		{
+
+		}
+
+		if (OnUserDestroy())
+		{
+			delete[] _bufScreen;
+			SetConsoleActiveScreenBuffer(_hOriginalConsole);
+			_cvGameFinished.notify_one();
+		}
+		else
+		{
+			_bAtomActive = true;
+		}
+
 	}
 		
 
