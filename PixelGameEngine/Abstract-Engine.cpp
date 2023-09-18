@@ -1,6 +1,10 @@
 #include "Abstract-Engine.h"
 
 
+std::atomic<bool> ConsoleEngine::_bAtomActive(false);
+std::condition_variable ConsoleEngine::_cvGameFinished;
+std::mutex ConsoleEngine::_muxGame;
+
 ConsoleEngine::ConsoleEngine()
 {
 	_nScreenHeight = 80;
@@ -20,6 +24,12 @@ ConsoleEngine::ConsoleEngine()
 	_bEnableSound = false;
 
 	_sAppName = L"Default";
+}
+
+ConsoleEngine::~ConsoleEngine()
+{
+	SetConsoleActiveScreenBuffer(_hOriginalConsole);
+	delete[] _bufScreen;
 }
 
 void ConsoleEngine::EnableSound()
@@ -110,6 +120,92 @@ void ConsoleEngine::Clip(int& x, int& y)
 	if (x > _nScreenWidth) x = _nScreenWidth;
 	if (y < 0) y = 0;
 	if (y > _nScreenHeight) y = _nScreenHeight;
+}
+
+void ConsoleEngine::DrawLine(int x1, int y1, int x2, int y2, short c, short col)
+{
+	int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
+	dx = x2 - x1;
+	dy = y2 - y1;
+	dx1 = abs(dx);
+	dy1 = abs(dy);
+	px = 2 * dy1 - dx1;
+	py = 2 * dx1 - dy1;
+
+	if (dy1 <= dx1)
+	{
+		if (dx >= 0)
+		{
+			x = x1;
+			y = y1;
+			xe = x2;
+		}
+		else
+		{
+			x = x2;
+			y = y2;
+			xe = x1;
+		}
+		Draw(x, y, c, col);
+
+		for (i = 0; x < xe; ++i)
+		{
+			x = x + 1;
+			if (px < 0)
+				px = px + 2 * dy1;
+			else
+			{
+				if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0))
+					y = y + 1;
+				else 
+					y = y - 1;
+
+				px = px + 2 * (dy1 - dx1);
+			}
+			Draw(x, y, c, col);
+		}
+	}
+	else
+	{
+		if (dy >= 0)
+		{
+			x = x1;
+			y = y1; 
+			ye = y2;
+		}
+		else
+		{
+			x = x2; 
+			y = y2; 
+			ye = y1;
+		}
+
+		Draw(x, y, c, col);
+
+		for (i = 0; y < ye; i++)
+		{
+			y = y + 1;
+			if (py <= 0)
+				py = py + 2 * dx1;
+			else
+			{
+				if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) 
+					x = x + 1; 
+				else 
+					x = x - 1;
+				py = py + 2 * (dx1 - dy1);
+			}
+			Draw(x, y, c, col);
+		}
+	}
+
+}
+
+void ConsoleEngine::DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, short c, short col)
+{
+	DrawLine(x1, y1, x2, y2, c, col);
+	DrawLine(x2, y2, x3, y3, c, col);
+	DrawLine(x3, y3, x1, y1, c, col);
 }
 
 void ConsoleEngine::Start()

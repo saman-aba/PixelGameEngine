@@ -5,7 +5,9 @@ int main()
 {
 	GaluEngine engine;
 
-	engine.ConstructConsole(160, 100, 8, 8);
+	if (engine.ConstructConsole(256, 240, 4, 4))
+		engine.Start();
+
 	engine.Start();
 
 	return 0;

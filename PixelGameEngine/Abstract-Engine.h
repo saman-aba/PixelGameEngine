@@ -19,10 +19,12 @@ class ConsoleEngine
 {
 public:
 	ConsoleEngine();
+	~ConsoleEngine();
 
 	virtual bool OnUserCreate() = 0;
 	virtual bool OnUserUpdate(float fElapsedTime) = 0;
 	virtual bool OnUserDestroy() = 0;
+	
 
 	void EnableSound();
 	int ConstructConsole(int width, int height, int fontw, int fonth);
@@ -31,6 +33,13 @@ public:
 
 	void Clip(int& x, int& y);
 
+	void DrawString(int x, std::wstring c, short col = 0x00F);
+	void DrawStringAlpha(int x, int y, std::wstring c, short col = 0x000F);
+	void DrawLine(int x1, int y1, int x2, int y2, short c = 0x2588, short col = 0x000F);
+	void DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, short c = 0x2588, short col = 0x000F);
+	void FillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, short c = 0x2588, short col = 0x000F);
+	void DrawCircle(int xc, int yc, int r, short c = 0x2588, short col = 0x000F);
+	void FillCircle(int xc, int yc, int r, short c = 0x2588, short col = 0x000F);
 	void Start();
 
 	int ScreenWidth();
